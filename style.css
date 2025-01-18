@@ -1,0 +1,189 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body{
+    background: #000;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.sidebar{
+    width: 300px;
+    background: #000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    padding: 10px;
+}
+.sidebar-nav{
+    background: #111111;
+    border-radius: 10px;
+    padding: 20px 10px;
+    margin-bottom: 10px; 
+}
+
+.sidebar-nav .logo{
+    width: 120px;
+}
+.sidebar-nav .logo img{
+    width: 100%;
+}
+
+.sidebar-nav ul{
+    list-style: none;
+}
+.sidebar-nav ul li{
+    padding: 10px 20px;
+}
+.sidebar-nav ul li a:hover{
+    color: #fff;
+}
+.sidebar-nav ul li a{
+    text-decoration: none;
+    color: #b3b3b3;
+    font-size: 16px;
+    font-weight: 600;
+}
+.sidebar-nav ul li a i{
+    font-size: 20px;
+   margin-right: 10px;
+}
+.library::after{
+    content: '+';
+    float: right;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 15px;
+}
+
+.create-playlist{
+    background: #302f2f;
+    padding: 30px 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+.sidebar-scroll{
+    height: 120px;
+    overflow-y: auto;
+}
+.sidebar-scroll::webkit-scrollbar{
+    background: transparent;
+}
+.sidebar-scroll::webkit-scrollbar-thumb{
+    background: transparent;
+    width: 10px;
+}
+.sidebar-scroll:hover::webkit-scrollbar-thumb{
+    background: #5c5b5b;
+    width: 5px;
+}
+.create-playlist h4{
+    color: #fff;
+    font-size:15px;
+}
+.create-playlist p{
+    color: #fff;
+    font-size: 12px;
+    margin: 12px 0;
+}
+.create-playlist button{
+    padding: 8px 15px;
+    border: 0;
+    outline: 0;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.privacy ul li a{
+    text-decoration: none;
+    color: #818080;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 0 6px;
+}
+.privacy ul li a:hover{
+    text-decoration: underline;
+    color: #bebcbc; 
+}
+.privacy ul{
+    list-style: none;
+    margin-top: 20px;
+}
+.privacy ul li{
+    padding: 0 12px;
+    padding-bottom: 8px;
+}
+.eng-btn{
+    padding: 20px 30px;
+}
+.eng-btn button{
+    padding: 10px 30px;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: #ffffff;
+    border: 1px solid #818080;
+    border-radius: 20px;
+    margin: 20px 0;
+}
+.eng-btn button:hover{
+    padding: 11px 31px;
+    border: 1px solid #fff;
+}
+.main-section{
+    margin-left: 300px;
+    background: #181818;
+    height: 100vh;
+}
+.main-section .top-nav{
+    padding: 20px 30px;
+    background: #1b1b1b;
+    display: flex; 
+    align-items: center;
+    justify-content: space-between;
+}
+
+.main-section .top-nav button{
+    background transparent;
+    border: 0;
+    outline: 0;
+}
+
+.main-section .top-nav .prev-btn button {
+    background: transparent;
+    border: none;
+}
+
+.main-section .top-nav .prev-btn button i{
+  color: #838181;
+  font-size: 22px;
+  margin-right: 20px; 
+}
+.top-nav .login-btn .sign-up {
+    color: #838181;
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: 25px;
+    background: transparent; 
+    border: none; 
+}
+
+.top-nav .login-btn .sign-up:hover {
+    color: #ffffff; 
+    background: transparent; 
+    text-decoration: underline; 
+}
+
+
+  .top-nav .login-btn .login{
+    color: #242323;
+    font-size: 16px;
+    font-weight: 600; 
+    background: #fff;
+    padding: 10px 15px;
+    border-radius: 20px;
+  }
+  .top-nav .login-btn .login:hover{
+    background: #818080;
+}
