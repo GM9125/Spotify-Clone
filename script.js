@@ -37,6 +37,7 @@ let trackList = [];
 let player;
 let device_id;
 let progressInterval;
+let currentTrackState = null;
 
 async function init() {
     const accessToken = getAccessToken();
@@ -48,7 +49,8 @@ async function init() {
     window.onSpotifyWebPlaybackSDKReady = () => {
         player = new Spotify.Player({
             name: 'Spotify Clone Player',
-            getOAuthToken: cb => { cb(accessToken); }
+            getOAuthToken: cb => { cb(accessToken); },
+            volume: 0.5 // Set initial volume to 50%
         });
 
         // Error handling
@@ -59,6 +61,7 @@ async function init() {
 
         // Playback status updates
         player.addListener('player_state_changed', state => {
+            currentTrackState = state;
             console.log(state);
             updatePlaybar(state.track_window.current_track);
             updateTrackProgress(state);
@@ -70,6 +73,7 @@ async function init() {
         player.addListener('ready', ({ device_id: id }) => {
             device_id = id;
             console.log('Ready with Device ID', id);
+            
             // Initialize track list and add event listeners to play buttons
             document.querySelectorAll('.play-btn').forEach(button => {
                 trackList.push(button.dataset.uri);
@@ -85,24 +89,9 @@ async function init() {
             document.getElementById('nextButton').addEventListener('click', playNextTrack);
             document.getElementById('prevButton').addEventListener('click', playPrevTrack);
 
-            // Add event listener for volume control
-            document.querySelector('.volume-bar').addEventListener('input', (e) => {
-                const volume = e.target.value / 100;
-                player.setVolume(volume);
-            });
-
-            // Add event listener for mute/unmute
-            document.getElementById('volumeButton').addEventListener('click', () => {
-                player.getVolume().then(volume => {
-                    if (volume > 0) {
-                        player.setVolume(0);
-                        document.getElementById('volumeButton').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
-                    } else {
-                        player.setVolume(0.5);
-                        document.getElementById('volumeButton').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
-                    }
-                });
-            });
+            // Setup volume control and progress bar seek functionality
+            setupVolumeControl();
+            setupProgressBarSeek();
         });
 
         // Not Ready
@@ -115,22 +104,78 @@ async function init() {
     };
 }
 
-// Function to play a track
+// Function to setup volume control with precise interaction
+function setupVolumeControl() {
+    const volumeBar = document.querySelector('.volume-bar');
+    const volumeButton = document.getElementById('volumeButton');
+
+    // Volume bar input handling
+    volumeBar.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        player.setVolume(volume).then(() => {
+            console.log(`Volume set to ${volume}`);
+        });
+    });
+
+    // Mute/Unmute functionality
+    volumeButton.addEventListener('click', () => {
+        player.getVolume().then(volume => {
+            if (volume > 0) {
+                player.setVolume(0).then(() => {
+                    volumeBar.value = 0;
+                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                });
+            } else {
+                player.setVolume(0.5).then(() => {
+                    volumeBar.value = 50;
+                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                });
+            }
+        });
+    });
+}
+
+// Function to setup progress bar seek functionality
+function setupProgressBarSeek() {
+    const progressBar = document.querySelector('.progress-bar');
+    
+    progressBar.addEventListener('click', (event) => {
+        if (currentTrackState && player) {
+            const progressBarRect = progressBar.getBoundingClientRect();
+            const clickPosition = event.clientX - progressBarRect.left;
+            const percentage = clickPosition / progressBarRect.width;
+            
+            // Calculate seek position in milliseconds
+            const seekPosition = percentage * currentTrackState.duration;
+            
+            // Seek to the specific position
+            player.seek(seekPosition).then(() => {
+                console.log('Seeked to:', seekPosition);
+            });
+        }
+    });
+}
+
+// Function to play a track with optimized loading
 async function playTrack(uri) {
     currentTrackUri = uri;
     currentTrackIndex = trackList.indexOf(uri);
 
-    const result = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ uris: [uri] }),
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAccessToken()}`
-        }
-    });
+    try {
+        const result = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ uris: [uri] }),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
 
-    if (!result.ok) {
-        console.error('Failed to play track:', result.statusText);
+        if (!result.ok) {
+            console.error('Failed to play track:', result.statusText);
+        }
+    } catch (error) {
+        console.error('Error playing track:', error);
     }
 }
 
