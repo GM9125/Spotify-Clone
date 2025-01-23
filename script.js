@@ -105,35 +105,70 @@ async function init() {
 }
 
 // Function to setup volume control with precise interaction
+// Function to setup volume control with precise interaction
 function setupVolumeControl() {
     const volumeBar = document.querySelector('.volume-bar');
+    const volume = document.querySelector('.volume');
+    const volumeHandle = document.querySelector('.volume-handle');
     const volumeButton = document.getElementById('volumeButton');
+    let previousVolume = 0.5; // Default volume
 
-    // Volume bar input handling
-    volumeBar.addEventListener('input', (e) => {
-        const volume = e.target.value / 100;
-        player.setVolume(volume).then(() => {
-            console.log(`Volume set to ${volume}`);
+    // Volume bar click handling
+    volumeBar.addEventListener('click', (e) => {
+        const barRect = volumeBar.getBoundingClientRect();
+        const offsetX = Math.min(Math.max(0, e.clientX - barRect.left), barRect.width);
+        const volumeLevel = offsetX / barRect.width;
+
+        volume.style.width = `${volumeLevel * 100}%`;
+        player.setVolume(volumeLevel).then(() => {
+            console.log(`Volume set to ${volumeLevel}`);
         });
+    });
+
+    // Dragging functionality for volume handle
+    let isDragging = false;
+    volumeHandle.addEventListener('mousedown', () => {
+        isDragging = true;
+        document.body.style.cursor = 'pointer';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const barRect = volumeBar.getBoundingClientRect();
+            const offsetX = Math.min(Math.max(0, e.clientX - barRect.left), barRect.width);
+            const volumeLevel = offsetX / barRect.width;
+
+            volume.style.width = `${volumeLevel * 100}%`;
+            player.setVolume(volumeLevel).then(() => {
+                console.log(`Volume set to ${volumeLevel}`);
+            });
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        document.body.style.cursor = 'default';
     });
 
     // Mute/Unmute functionality
     volumeButton.addEventListener('click', () => {
-        player.getVolume().then(volume => {
-            if (volume > 0) {
+        player.getVolume().then(currentVolume => {
+            if (currentVolume > 0) {
+                previousVolume = currentVolume;
                 player.setVolume(0).then(() => {
-                    volumeBar.value = 0;
-                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                    volume.style.width = '0%';
+                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M..."/></svg>'; // Muted icon
                 });
             } else {
-                player.setVolume(0.5).then(() => {
-                    volumeBar.value = 50;
-                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                player.setVolume(previousVolume).then(() => {
+                    volume.style.width = `${previousVolume * 100}%`;
+                    volumeButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M..."/></svg>'; // Unmuted icon
                 });
             }
         });
     });
 }
+
 
 // Function to setup progress bar seek functionality
 function setupProgressBarSeek() {
