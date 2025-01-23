@@ -1,8 +1,7 @@
 // script.js
 
 const clientId = '998f99d0b45242729013c2346b8afff3';
-const redirectUri = 'http://127.0.0.1:5500/'; // Change this to your actual redirect URI
-
+const redirectUri = 'https://spotify-clone-8v3v7r9oo-gm9125s-projects.vercel.app/';
 // First, add these SVG icon definitions as constants at the top of your script
 const VOLUME_ICONS = {
     HIGH: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
