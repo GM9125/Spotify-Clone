@@ -1,236 +1,171 @@
-// Spotify API configuration
-const CLIENT_ID = '4746dcf87817496198c6641a9bedb3e3';
-// Get the base URL of the current page (without hash or query parameters)
-const REDIRECT_URI = 'http://127.0.0.1:5500/';
-let accessToken = null;
-let player = null;
-let currentTrackUri = null;
+// script.js
 
-// Initialize on page load
-window.onload = async () => {
-    console.log('Redirect URI:', REDIRECT_URI); // For debugging
-    
-    // Check if we have a token in URL hash
-    const hash = window.location.hash
-        .substring(1)
-        .split('&')
-        .reduce((initial, item) => {
-            const parts = item.split('=');
-            initial[parts[0]] = decodeURIComponent(parts[1]);
-            return initial;
-        }, {});
+const clientId = '998f99d0b45242729013c2346b8afff3';
+const redirectUri = 'http://127.0.0.1:5500/'; // Change this to your actual redirect URI
 
-    if (hash.access_token) {
-        accessToken = hash.access_token;
-        console.log('Access Token acquired'); // For debugging
-        initializePlayer();
-    } else {
-        console.log('Redirecting to Spotify auth...'); // For debugging
-        redirectToSpotifyAuth();
+// Generate a random string for the state parameter
+function generateRandomString(length) {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  
+    for (let i = 0; length > i; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
+
+const state = generateRandomString(16);
+
+// Spotify API scopes
+const scope = 'streaming user-read-email user-read-private';
+
+// Function to get the Spotify access token
+function getAccessToken() {
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    return params.get('access_token');
+}
+
+// Redirect the user to Spotify's authorization page
+function redirectToSpotifyAuthorization() {
+    const url = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+    window.location = url;
+}
+
+function init() {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+        redirectToSpotifyAuthorization();
+        return;
     }
 
-    // Rest of the initialization code...
-    setupEventListeners();
-};
-
-function setupEventListeners() {
-    // Add click listeners to all play buttons
-    document.querySelectorAll('.play-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const trackUri = button.getAttribute('data-uri');
-            playTrack(trackUri);
-        });
-    });
-
-    // Add listeners for player controls
-    document.getElementById('playButton').addEventListener('click', togglePlay);
-    document.getElementById('pauseButton').addEventListener('click', togglePlay);
-    document.getElementById('prevButton').addEventListener('click', playPrevious);
-    document.getElementById('nextButton').addEventListener('click', playNext);
-
-    // Progress bar functionality
-    const progressBar = document.querySelector('.progress-bar');
-    progressBar.addEventListener('click', handleProgressBarClick);
-    
-    // Volume control
-    const volumeBar = document.querySelector('.volume-bar');
-    volumeBar.addEventListener('click', handleVolumeChange);
-}
-
-function redirectToSpotifyAuth() {
-    const scopes = [
-        'streaming',
-        'user-read-email',
-        'user-read-private',
-        'user-modify-playback-state',
-        'user-read-playback-state'
-    ];
-
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes.join(' '))}`;
-    console.log('Auth URL:', authUrl); // For debugging
-    window.location.href = authUrl;
-}
-
-async function initializePlayer() {
-    // Load Spotify Web Playback SDK
-    const script = document.createElement('script');
-    script.src = 'https://sdk.scdn.co/spotify-player.js';
-    document.body.appendChild(script);
-
     window.onSpotifyWebPlaybackSDKReady = () => {
-        player = new Spotify.Player({
+        const player = new Spotify.Player({
             name: 'Spotify Clone Player',
             getOAuthToken: cb => { cb(accessToken); }
         });
 
         // Error handling
-        player.addListener('initialization_error', ({ message }) => console.error(message));
-        player.addListener('authentication_error', ({ message }) => console.error(message));
-        player.addListener('account_error', ({ message }) => console.error(message));
-        player.addListener('playback_error', ({ message }) => console.error(message));
+        player.addListener('initialization_error', ({ message }) => { console.error(message); });
+        player.addListener('authentication_error', ({ message }) => { console.error(message); });
+        player.addListener('account_error', ({ message }) => { console.error(message); });
+        player.addListener('playback_error', ({ message }) => { console.error(message); });
 
         // Playback status updates
         player.addListener('player_state_changed', state => {
-            updatePlayerState(state);
+            console.log(state);
+            updatePlaybar(state.track_window.current_track);
         });
 
+        // Ready
+        player.addListener('ready', ({ device_id }) => {
+            console.log('Ready with Device ID', device_id);
+            // Add event listeners to play buttons
+            document.querySelectorAll('.play-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const uri = e.target.closest('.play-btn').dataset.uri;
+                    playTrack(uri, device_id);
+                });
+            });
+
+            // Add event listeners to playbar controls
+            document.getElementById('playButton').addEventListener('click', () => player.resume());
+            document.getElementById('pauseButton').addEventListener('click', () => player.pause());
+            document.getElementById('nextButton').addEventListener('click', () => player.nextTrack());
+            document.getElementById('prevButton').addEventListener('click', () => player.previousTrack());
+
+            // Add event listener for volume control
+            document.querySelector('.volume-bar').addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                player.setVolume(volume);
+            });
+        });
+
+        // Not Ready
+        player.addListener('not_ready', ({ device_id }) => {
+            console.log('Device ID has gone offline', device_id);
+        });
+
+        // Connect to the player!
         player.connect();
     };
 }
 
-async function playTrack(trackUri) {
-    if (!player) return;
-
-    try {
-        // Get track info
-        const response = await fetch(`https://api.spotify.com/v1/tracks/${trackUri.split(':')[2]}`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-        const trackInfo = await response.json();
-
-        // Update player UI
-        updatePlayerUI(trackInfo);
-
-        // Play the track
-        await fetch(`https://api.spotify.com/v1/me/player/play`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                uris: [trackUri]
-            })
-        });
-
-        currentTrackUri = trackUri;
-        updatePlayPauseButton(true);
-    } catch (error) {
-        console.error('Error playing track:', error);
-    }
-}
-
-function updatePlayerUI(trackInfo) {
-    // Update song info
-    document.querySelector('.song-title').textContent = trackInfo.name;
-    document.querySelector('.song-artist').textContent = trackInfo.artists.map(artist => artist.name).join(', ');
-    
-    // Update song image if available
-    const songImg = document.querySelector('.song-img');
-    if (trackInfo.album.images.length > 0) {
-        songImg.style.backgroundImage = `url(${trackInfo.album.images[0].url})`;
-    }
-
-    // Update duration
-    const durationMinutes = Math.floor(trackInfo.duration_ms / 60000);
-    const durationSeconds = Math.floor((trackInfo.duration_ms % 60000) / 1000);
-    document.querySelector('.progress-container .time:last-child').textContent = 
-        `${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`;
-}
-
-async function togglePlay() {
-    if (!player) return;
-
-    const playButton = document.getElementById('playButton');
-    const pauseButton = document.getElementById('pauseButton');
-
-    try {
-        const state = await player.getCurrentState();
-        if (state?.paused) {
-            await player.resume();
-            updatePlayPauseButton(true);
-        } else {
-            await player.pause();
-            updatePlayPauseButton(false);
+// Function to play a track
+async function playTrack(uri, device_id) {
+    const result = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ uris: [uri] }),
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAccessToken()}`
         }
-    } catch (error) {
-        console.error('Error toggling playback:', error);
+    });
+
+    if (!result.ok) {
+        console.error('Failed to play track:', result.statusText);
     }
 }
 
-function updatePlayPauseButton(isPlaying) {
-    const playButton = document.getElementById('playButton');
-    const pauseButton = document.getElementById('pauseButton');
-    
-    if (isPlaying) {
-        playButton.style.display = 'none';
-        pauseButton.style.display = 'flex';
-    } else {
-        playButton.style.display = 'flex';
-        pauseButton.style.display = 'none';
+// Function to fetch track data
+async function fetchTrackData(trackId) {
+    const result = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: {
+            'Authorization': `Bearer ${getAccessToken()}`
+        }
+    });
+
+    if (!result.ok) {
+        console.error('Failed to fetch track data:', result.statusText);
+        return null;
+    }
+
+    return await result.json();
+}
+
+// Function to update the playbar with track details
+function updatePlaybar(track) {
+    document.querySelector('.song-img').style.backgroundImage = `url(${track.album.images[0].url})`;
+    document.querySelector('.song-title').textContent = track.name;
+    document.querySelector('.song-artist').textContent = track.artists.map(artist => artist.name).join(', ');
+}
+
+// Function to play the current track
+function playCurrentTrack() {
+    if (currentTrackUri) {
+        audio.play();
+        togglePlayPauseButtons(true);
     }
 }
 
-function handleProgressBarClick(event) {
-    const progressBar = event.currentTarget;
-    const clickPosition = event.offsetX / progressBar.offsetWidth;
-    const progress = document.querySelector('.progress');
-    progress.style.width = `${clickPosition * 100}%`;
-
-    if (player) {
-        player.seek(clickPosition * player.getDuration());
-    }
+// Function to pause the current track
+function pauseCurrentTrack() {
+    audio.pause();
+    togglePlayPauseButtons(false);
 }
 
-function handleVolumeChange(event) {
-    const volumeBar = event.currentTarget;
-    const clickPosition = event.offsetX / volumeBar.offsetWidth;
-    const volume = document.querySelector('.volume');
-    volume.style.width = `${clickPosition * 100}%`;
-
-    if (player) {
-        player.setVolume(clickPosition);
-    }
+// Function to play the next track
+function playNextTrack() {
+    currentTrackIndex = (currentTrackIndex + 1) % trackList.length;
+    playTrack(trackList[currentTrackIndex]);
 }
 
-async function playPrevious() {
-    if (!player) return;
-    await player.previousTrack();
+// Function to play the previous track
+function playPrevTrack() {
+    currentTrackIndex = (currentTrackIndex - 1 + trackList.length) % trackList.length;
+    playTrack(trackList[currentTrackIndex]);
 }
 
-async function playNext() {
-    if (!player) return;
-    await player.nextTrack();
+// Function to update the track progress
+function updateTrackProgress() {
+    const progress = (audio.currentTime / audio.duration) * 100;
+    document.querySelector('.progress').style.width = `${progress}%`;
 }
 
-function updatePlayerState(state) {
-    if (!state) return;
-
-    // Update progress
-    const progress = document.querySelector('.progress');
-    const position = state.position;
-    const duration = state.duration;
-    const percentage = (position / duration) * 100;
-    progress.style.width = `${percentage}%`;
-
-    // Update time display
-    const currentMinutes = Math.floor(position / 60000);
-    const currentSeconds = Math.floor((position % 60000) / 1000);
-    document.querySelector('.progress-container .time:first-child').textContent = 
-        `${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}`;
-
-    // Update play/pause button
-    updatePlayPauseButton(!state.paused);
+// Function to toggle play/pause buttons
+function togglePlayPauseButtons(isPlaying) {
+    document.getElementById('playButton').style.display = isPlaying ? 'none' : 'block';
+    document.getElementById('pauseButton').style.display = isPlaying ? 'block' : 'none';
 }
+
+// Initialize the application
+init();
