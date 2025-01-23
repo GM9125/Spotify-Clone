@@ -36,6 +36,7 @@ let currentTrackIndex = 0;
 let trackList = [];
 let player;
 let device_id;
+let progressInterval;
 
 async function init() {
     const accessToken = getAccessToken();
@@ -62,6 +63,7 @@ async function init() {
             updatePlaybar(state.track_window.current_track);
             updateTrackProgress(state);
             togglePlayPauseButtons(!state.paused);
+            handleProgressBar(state);
         });
 
         // Ready
@@ -87,6 +89,19 @@ async function init() {
             document.querySelector('.volume-bar').addEventListener('input', (e) => {
                 const volume = e.target.value / 100;
                 player.setVolume(volume);
+            });
+
+            // Add event listener for mute/unmute
+            document.getElementById('volumeButton').addEventListener('click', () => {
+                player.getVolume().then(volume => {
+                    if (volume > 0) {
+                        player.setVolume(0);
+                        document.getElementById('volumeButton').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                    } else {
+                        player.setVolume(0.5);
+                        document.getElementById('volumeButton').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/><path d="M11.5 13.614a5.752 5.752 0 000-11.228v1.55a4.252 4.252 0 010 8.127v1.55z"/></svg>';
+                    }
+                });
             });
         });
 
@@ -132,6 +147,17 @@ function updateTrackProgress(state) {
     const progress = (state.position / state.duration) * 100;
     document.querySelector('.progress').style.width = `${progress}%`;
     document.querySelectorAll('.time')[0].textContent = formatDuration(state.position); // Current time
+}
+
+// Function to handle incremental progress bar updates
+function handleProgressBar(state) {
+    clearInterval(progressInterval);
+    if (!state.paused) {
+        progressInterval = setInterval(() => {
+            state.position += 1000;
+            updateTrackProgress(state);
+        }, 1000);
+    }
 }
 
 // Function to format duration in milliseconds to mm:ss
