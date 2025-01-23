@@ -450,8 +450,8 @@ hr {
 .play-button {
     background-color: white;
     color: black;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -488,7 +488,7 @@ hr {
 }
 
 .progress {
-    width: 30%;
+    width: 0%;
     height: 100%;
     background-color: white;
     border-radius: 2px;
