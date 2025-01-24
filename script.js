@@ -1,8 +1,15 @@
-// script.js
-
 const clientId = '998f99d0b45242729013c2346b8afff3';
 const redirectUri = 'http://127.0.0.1:5500/';
-// First, add these SVG icon definitions as constants at the top of your script
+
+let currentTrackUri = null;
+let currentTrackIndex = 0;
+let trackList = [];
+let player;
+let device_id;
+let progressInterval;
+let currentTrackState = null;
+
+// Adding these SVG volume icons definitions as constants
 const VOLUME_ICONS = {
     HIGH: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z"/>
@@ -16,7 +23,8 @@ const VOLUME_ICONS = {
         <line x1="15" y1="1" x2="1" y2="15" stroke="currentColor" stroke-width="1.5"/>
     </svg>`
 };
-// Generate a random string for the state parameter
+
+// Generating a random string for the state parameter
 function generateRandomString(length) {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -26,30 +34,22 @@ function generateRandomString(length) {
     }
     return text;
 }
-
 const state = generateRandomString(16);
 
 // Spotify API scopes
 const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-library-read';
+
 // Function to get the Spotify access token
 function getAccessToken() {
     const params = new URLSearchParams(window.location.hash.substring(1));
     return params.get('access_token');
 }
 
-// Redirect the user to Spotify's authorization page
+// Redirecting the user to Spotify's authorization page
 function redirectToSpotifyAuthorization() {
     const url = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scope)}`;
     window.location = url;
 }
-
-let currentTrackUri = null;
-let currentTrackIndex = 0;
-let trackList = [];
-let player;
-let device_id;
-let progressInterval;
-let currentTrackState = null;
 
 async function init() {
     const accessToken = getAccessToken();
@@ -113,7 +113,7 @@ async function init() {
             console.log('Device ID has gone offline', device_id);
         });
 
-        // Connect to the player!
+        // Connected to the player!
         player.connect();
     };
 }
@@ -127,7 +127,14 @@ function setupVolumeControl() {
     let previousVolume = 0.5; // Default volume
     let isMuted = false;
 
-    // Function to update volume icon based on volume level
+    // Getting saved volume
+    const savedVolume = localStorage.getItem('spotifyCloneVolume');
+    if (savedVolume !== null) {
+        const volumeLevel = parseFloat(savedVolume);
+        updateVolume(volumeLevel);
+    }
+
+    // Update volume icon based on current volume level
     function updateVolumeIcon(volumeLevel) {
         if (volumeLevel === 0 || isMuted) {
             volumeButton.innerHTML = VOLUME_ICONS.MUTED;
@@ -143,7 +150,7 @@ function setupVolumeControl() {
         volume.style.width = `${volumeLevel * 100}%`;
         player.setVolume(volumeLevel).then(() => {
             updateVolumeIcon(volumeLevel);
-            console.log(`Volume set to ${volumeLevel}`);
+            localStorage.setItem('spotifyCloneVolume', volumeLevel.toString());
         });
     }
 
@@ -156,7 +163,7 @@ function setupVolumeControl() {
         updateVolume(volumeLevel);
     });
 
-    // Dragging functionality for volume handle
+    //Volume Bar Dragging functionality
     let isDragging = false;
 
     volumeHandle.addEventListener('mousedown', () => {
@@ -179,21 +186,6 @@ function setupVolumeControl() {
         document.body.style.cursor = 'default';
     });
 
-    // Add transition styles for smooth icon changes
-    const style = document.createElement('style');
-    style.textContent = `
-        #volumeButton {
-            transition: all 0.2s ease;
-        }
-        #volumeButton svg {
-            transition: all 0.2s ease;
-        }
-        .volume {
-            transition: width 0.1s ease;
-        }
-    `;
-    document.head.appendChild(style);
-
     // Mute/Unmute functionality
     volumeButton.addEventListener('click', () => {
         player.getVolume().then(currentVolume => {
@@ -209,7 +201,7 @@ function setupVolumeControl() {
     });
 
     // Initialize volume icon
-    updateVolumeIcon(0.5); // Set initial icon state
+    updateVolumeIcon(0.5);
 }
 
 // Function to setup progress bar seek functionality
@@ -307,11 +299,18 @@ function updateTrackProgress(state) {
 
 // Function to handle incremental progress bar updates
 function handleProgressBar(state) {
+    if (!state) return; // Add null check
+    
     clearInterval(progressInterval);
     if (!state.paused) {
+        let lastPosition = state.position;
         progressInterval = setInterval(() => {
-            state.position += 1000;
-            updateTrackProgress(state);
+            lastPosition += 1000;
+            if (lastPosition <= state.duration) {
+                updateTrackProgress({...state, position: lastPosition});
+            } else {
+                clearInterval(progressInterval);
+            }
         }, 1000);
     }
 }
@@ -343,6 +342,7 @@ function playPrevTrack() {
 
 let searchTimeout;
 
+// Initializing the application only after the DOM is fully loaded
 function initializeSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchResults = document.getElementById('searchResults');
@@ -353,6 +353,14 @@ function initializeSearch() {
         if (!searchInput.value.trim()) {
             showRecentSearches();
             contentContainer.classList.add('hide');
+        }
+    });
+
+    searchInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!searchInput.value.trim()) {
+        showRecentSearches();
+        contentContainer.classList.add('hide');
         }
     });
 
@@ -395,6 +403,7 @@ function initializeSearch() {
             contentContainer.classList.remove('hide');
         }
     });
+
     // Handle result item keyboard navigation
     searchResults.addEventListener('keydown', (e) => {
         if (e.target.classList.contains('result-item')) {
@@ -453,6 +462,7 @@ function initializeSearch() {
     window.toggleSearchLoading = toggleLoading;
 }
 
+// Function to search Spotify for tracks
 async function searchSpotify(query) {
     const searchResults = document.getElementById('searchResults');
     const contentContainer = document.querySelector('.content-container');
@@ -478,6 +488,8 @@ async function searchSpotify(query) {
         displayError('An error occurred while searching');
     }
 }
+
+// Function to display search results
 function displaySearchResults(tracks) {
     const searchResults = document.getElementById('searchResults');
     const contentContainer = document.querySelector('.content-container');
@@ -506,12 +518,21 @@ function displaySearchResults(tracks) {
         ${resultsHTML}
     `;
 }
+
+// Function to save recent searches
 function saveRecentSearch(query) {
     let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
     recentSearches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
     localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
 }
 
+// Function to clear recent searches
+function clearRecentSearches() {
+    localStorage.removeItem('recentSearches');
+    showRecentSearches();
+}
+
+// Function to show recent searches
 function showRecentSearches() {
     const recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
     const searchResults = document.getElementById('searchResults');
@@ -527,17 +548,27 @@ function showRecentSearches() {
         `).join('');
 
         searchResults.innerHTML = `
-            <h2 style="color: #fff; margin-bottom: 20px;">Recent Searches</h2>
-            ${recentHTML}
+            <div class="search-results-content">
+                <h2>Recent Searches</h2>
+                ${recentHTML}
+                <button id="clearSearchesButton" onclick="clearRecentSearches()">Clear Recent Searches</button>
+            </div>
         `;
         searchResults.classList.add('active');
+    } else {
+        searchResults.innerHTML = '<div class="no-results">No recent searches</div>';
+        searchResults.classList.remove('active');
     }
 }
 
+// Function to display an error message
 function displayError(message) {
     const searchResults = document.getElementById('searchResults');
     searchResults.classList.add('active');
     searchResults.innerHTML = `<div class="no-results">${message}</div>`;
 }
-// Initialize the application
-init();
+
+// Initializing the application
+document.addEventListener('DOMContentLoaded', function () {
+    init();
+});
