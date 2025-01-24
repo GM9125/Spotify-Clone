@@ -560,3 +560,257 @@ hr {
 .volume-bar:hover .volume-handle {
     display: block;
 }
+
+/* Search Bar Styles */
+.search-section {
+    position: relative;
+    padding: 0 8px;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 500px;
+    padding: 6px 12px;
+    margin: 8px 0;
+}
+
+.search-bar i {
+    color: #121212;
+    font-size: 16px;
+    margin-right: 12px;
+}
+
+#searchInput {
+    background: transparent;
+    border: none;
+    color: #121212;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    padding: 6px 0;
+}
+
+#searchInput::placeholder {
+    color: #727272;
+}
+
+.content-container {
+    transition: opacity 0.3s ease;
+    min-height: 100%;
+    background: #181818;
+}
+
+
+.content-container.hide {
+    display: none;
+}
+
+/* Search Results Styles */
+.search-results {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 300px; /* Same as sidebar width */
+    right: 0;
+    bottom: 90px; /* Height of the playbar */
+    background: #121212;
+    padding: 24px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.search-results.active {
+    display: block;
+}
+
+/* Search Categories */
+.search-categories {
+    display: grid;
+    grid-gap: 24px;
+    padding: 20px 0;
+}
+
+/* Top Result Section */
+.top-result-section {
+    background: #181818;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.top-result-section h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.top-result {
+    cursor: pointer;
+    padding: 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.top-result:hover {
+    background: #282828;
+}
+
+/* Songs Section */
+.songs-section {
+    background: #181818;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.songs-section h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+/* Result Item Styles */
+.result-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 8px;
+    background: #181818;
+}
+
+.result-item:hover {
+    background: #282828;
+}
+
+.result-duration {
+    color: #b3b3b3;
+    font-size: 14px;
+    margin-left: 16px;
+}
+
+.result-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    margin-right: 16px;
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-info h4 {
+    color: #fff;
+    font-size: 16px;
+    margin: 0 0 4px;
+}
+
+.result-info p {
+    color: #b3b3b3;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* No Results Message */
+.no-results {
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+    font-size: 16px;
+}
+
+/* Search Results Template */
+.search-results-template {
+    display: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .search-results {
+        left: 0;
+        padding: 16px;
+    }
+
+    .search-categories {
+        grid-gap: 16px;
+    }
+}
+
+/* Loading State */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #fff;
+}
+
+.loading::after {
+    content: '';
+    width: 30px;
+    height: 30px;
+    border: 3px solid #1db954;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: loading 0.6s linear infinite;
+}
+
+@keyframes loading {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Active Search State */
+.sidebar-nav ul li.search-section.active .search-bar {
+    border: 2px solid #1db954;
+}
+
+/* Hover States */
+.result-item:hover .result-info h4 {
+    text-decoration: underline;
+}
+
+.result-item:active {
+    opacity: 0.7;
+}
+
+/* Scrollbar Styles for Search Results */
+.search-results::-webkit-scrollbar {
+    width: 12px;
+}
+
+.search-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+    background: #727272;
+    border-radius: 6px;
+    border: 3px solid #121212;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover {
+    background: #a7a7a7;
+}
+.search-results {
+    background: #121212;
+    padding: 32px;
+    height: calc(100vh - 90px);
+    overflow-y: auto;
+}
+
+.search-results h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 24px;
+    font-weight: bold;
+}
+
+.search-results-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+}

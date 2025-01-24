@@ -1,7 +1,7 @@
 // script.js
 
 const clientId = '998f99d0b45242729013c2346b8afff3';
-const redirectUri = 'https://spotify-clone-8v3v7r9oo-gm9125s-projects.vercel.app/';
+const redirectUri = 'http://127.0.0.1:5500/';
 // First, add these SVG icon definitions as constants at the top of your script
 const VOLUME_ICONS = {
     HIGH: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -30,8 +30,7 @@ function generateRandomString(length) {
 const state = generateRandomString(16);
 
 // Spotify API scopes
-const scope = 'streaming user-read-email user-read-private';
-
+const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-library-read';
 // Function to get the Spotify access token
 function getAccessToken() {
     const params = new URLSearchParams(window.location.hash.substring(1));
@@ -58,6 +57,8 @@ async function init() {
         redirectToSpotifyAuthorization();
         return;
     }
+
+    initializeSearch();
 
     window.onSpotifyWebPlaybackSDKReady = () => {
         player = new Spotify.Player({
@@ -338,6 +339,205 @@ function playNextTrack() {
 function playPrevTrack() {
     currentTrackIndex = (currentTrackIndex - 1 + trackList.length) % trackList.length;
     playTrack(trackList[currentTrackIndex]);
+}
+
+let searchTimeout;
+
+function initializeSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const contentContainer = document.querySelector('.content-container');
+
+    // Show recent searches on focus if input is empty
+    searchInput.addEventListener('focus', () => {
+        if (!searchInput.value.trim()) {
+            showRecentSearches();
+            contentContainer.classList.add('hide');
+        }
+    });
+
+    // Handle input changes with debouncing
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        
+        if (this.value.trim() === '') {
+            contentContainer.classList.remove('hide');
+            searchResults.classList.remove('active');
+            return;
+        }
+
+        // Add debouncing to prevent too many API calls
+        searchTimeout = setTimeout(() => {
+            searchSpotify(this.value.trim());
+            contentContainer.classList.add('hide');
+        }, 500);
+    });
+
+    // Handle keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            searchResults.classList.remove('active');
+            searchInput.blur();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const firstResult = searchResults.querySelector('.result-item');
+            if (firstResult) {
+                firstResult.focus();
+            }
+        }
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', function(e) {
+        const isClickInside = e.target.closest('.search-bar') || e.target.closest('.search-results');
+        if (!isClickInside) {
+            searchResults.classList.remove('active');
+            contentContainer.classList.remove('hide');
+        }
+    });
+    // Handle result item keyboard navigation
+    searchResults.addEventListener('keydown', (e) => {
+        if (e.target.classList.contains('result-item')) {
+            const currentItem = e.target;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextItem = currentItem.nextElementSibling;
+                if (nextItem) {
+                    nextItem.focus();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevItem = currentItem.previousElementSibling;
+                if (prevItem) {
+                    prevItem.focus();
+                } else {
+                    searchInput.focus();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                currentItem.click();
+            }
+        }
+    });
+
+    // Add tabindex to make results focusable
+    const addFocusableResults = () => {
+        const resultItems = searchResults.querySelectorAll('.result-item');
+        resultItems.forEach(item => {
+            item.setAttribute('tabindex', '0');
+        });
+    };
+
+    // Create observer to watch for new results being added
+    const observer = new MutationObserver(() => {
+        addFocusableResults();
+    });
+
+    // Start observing the search results container
+    observer.observe(searchResults, {
+        childList: true,
+        subtree: true
+    });
+
+    // Initial load of recent searches
+    if (!searchInput.value.trim()) {
+        showRecentSearches();
+    }
+
+    // Add loading state class
+    const toggleLoading = (isLoading) => {
+        searchInput.classList.toggle('loading', isLoading);
+    };
+
+    // Expose toggleLoading to be used by searchSpotify
+    window.toggleSearchLoading = toggleLoading;
+}
+
+async function searchSpotify(query) {
+    const searchResults = document.getElementById('searchResults');
+    const contentContainer = document.querySelector('.content-container');
+    
+    searchResults.classList.add('active');
+    contentContainer.classList.add('hide');
+    searchResults.innerHTML = '<div class="loading"></div>';
+
+    try {
+        const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`, {
+            headers: {
+                'Authorization': `Bearer ${getAccessToken()}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Search failed');
+
+        const data = await response.json();
+        saveRecentSearch(query);
+        displaySearchResults(data.tracks.items);
+    } catch (error) {
+        console.error('Search error:', error);
+        displayError('An error occurred while searching');
+    }
+}
+function displaySearchResults(tracks) {
+    const searchResults = document.getElementById('searchResults');
+    const contentContainer = document.querySelector('.content-container');
+    
+    searchResults.classList.add('active');
+    contentContainer.classList.add('hide');
+
+    if (tracks.length === 0) {
+        searchResults.innerHTML = '<div class="no-results">No results found</div>';
+        return;
+    }
+
+    const resultsHTML = tracks.map(track => `
+        <div class="result-item" onclick="playTrack('${track.uri}')">
+            <img src="${track.album.images[2].url}" alt="${track.name}">
+            <div class="result-info">
+                <h4>${track.name}</h4>
+                <p>${track.artists.map(artist => artist.name).join(', ')}</p>
+            </div>
+            <div class="result-duration">${formatDuration(track.duration_ms)}</div>
+        </div>
+    `).join('');
+
+    searchResults.innerHTML = `
+        <h2 style="color: #fff; margin-bottom: 20px;">Search Results</h2>
+        ${resultsHTML}
+    `;
+}
+function saveRecentSearch(query) {
+    let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    recentSearches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+}
+
+function showRecentSearches() {
+    const recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (recentSearches.length > 0) {
+        const recentHTML = recentSearches.map(search => `
+            <div class="result-item" onclick="document.getElementById('searchInput').value='${search}'; searchSpotify('${search}')">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <div class="result-info">
+                    <h4>${search}</h4>
+                </div>
+            </div>
+        `).join('');
+
+        searchResults.innerHTML = `
+            <h2 style="color: #fff; margin-bottom: 20px;">Recent Searches</h2>
+            ${recentHTML}
+        `;
+        searchResults.classList.add('active');
+    }
+}
+
+function displayError(message) {
+    const searchResults = document.getElementById('searchResults');
+    searchResults.classList.add('active');
+    searchResults.innerHTML = `<div class="no-results">${message}</div>`;
 }
 // Initialize the application
 init();

@@ -25,12 +25,15 @@
                     <span>Home</span>
                     </a></li>
 
-                <li>
-                    <a href="">
-                        <span><i class="fa-solid fa-magnifying-glass"></i></span>
-                        <span>Search</span>
-                    </a>
-                </li>
+                    <li class="search-section">
+                        <div class="search-bar">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="What do you want to listen to?">
+                        </div>
+                        <div class="search-results" id="searchResults">
+                            <!-- Search results will be dynamically inserted here -->
+                        </div>
+                    </li>
             </ul>
         </div>
 
@@ -82,6 +85,7 @@
    <!-- ......................Main section starts from here................-->
 
     <div class="main-section">
+        <div class="content-container">
         <div class="top-nav">
             <div class="prev-btn">
                 <button><i class="fa-solid fa-chevron-left"></i></button>
@@ -290,6 +294,7 @@
             <p class="copyright">&copy; 2025 Spotify AB</p>
         </div>
     </div>
+</div>
 
     <!-- Playbar -->
     <div class="playbar">
@@ -348,6 +353,20 @@
     <div class="volume-bar">
         <div class="volume">
             <div class="volume-handle"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results Template -->
+<div class="search-results-template" style="display: none;">
+    <div class="search-categories">
+        <div class="top-result-section">
+            <h2>Top Result</h2>
+            <div class="top-result"></div>
+        </div>
+        <div class="songs-section">
+            <h2>Songs</h2>
+            <div class="songs-result"></div>
         </div>
     </div>
 </div>
