@@ -276,10 +276,6 @@ body {
 }
 
 .spotify-playlist .play-btn {
-    position: relative;
-}
-
-.spotify-playlist .play-btn {
     position: absolute;
     background: #1db954;
     border-radius: 50%;
@@ -288,8 +284,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    right: 8px;
-    bottom: calc(50% + 10px); 
+    right: 11px;
+    bottom: 122px; 
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     cursor: pointer;

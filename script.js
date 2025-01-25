@@ -1,5 +1,5 @@
 const clientId = '998f99d0b45242729013c2346b8afff3';
-const redirectUri = 'http://127.0.0.1:5500/';
+const redirectUri = 'https://spotify-clone-mu-drab.vercel.app/';
 
 let currentTrackUri = null;
 let currentTrackIndex = 0;
