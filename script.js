@@ -60,64 +60,87 @@ async function init() {
 
     initializeSearch();
 
-    window.onSpotifyWebPlaybackSDKReady = () => {
-        player = new Spotify.Player({
-            name: 'Spotify Clone Player',
-            getOAuthToken: cb => { cb(accessToken); },
-            volume: 0.5 // Set initial volume to 50%
-        });
+    // Wait for Spotify SDK to load
+    await new Promise(resolve => {
+        if (window.Spotify) {
+            resolve(window.Spotify);
+        } else {
+            window.onSpotifyWebPlaybackSDKReady = () => {
+                resolve(window.Spotify);
+            };
+        }
+    });
 
-        // Error handling
-        player.addListener('initialization_error', ({ message }) => { console.error(message); });
-        player.addListener('authentication_error', ({ message }) => { console.error(message); });
-        player.addListener('account_error', ({ message }) => { console.error(message); });
-        player.addListener('playback_error', ({ message }) => { console.error(message); });
+    // Initialize player
+    player = new Spotify.Player({
+        name: 'Spotify Clone Player',
+        getOAuthToken: cb => { cb(accessToken); },
+        volume: 0.5
+    });
 
-        // Playback status updates
-        player.addListener('player_state_changed', state => {
+    // Error handling
+    player.addListener('initialization_error', ({ message }) => { 
+        console.error('Failed to initialize:', message); 
+    });
+    player.addListener('authentication_error', ({ message }) => { 
+        console.error('Failed to authenticate:', message); 
+    });
+    player.addListener('account_error', ({ message }) => { 
+        console.error('Failed to validate Spotify account:', message); 
+    });
+    player.addListener('playback_error', ({ message }) => { 
+        console.error('Failed to perform playback:', message); 
+    });
+
+    // Playback status updates
+    player.addListener('player_state_changed', state => {
+        if (state) {
             currentTrackState = state;
-            console.log(state);
+            console.log('Player State:', state);
             updatePlaybar(state.track_window.current_track);
             updateTrackProgress(state);
             togglePlayPauseButtons(!state.paused);
             handleProgressBar(state);
-        });
+        }
+    });
 
-        // Ready
-        player.addListener('ready', ({ device_id: id }) => {
-            device_id = id;
-            console.log('Ready with Device ID', id);
-            
-            // Initialize track list and add event listeners to play buttons
-            document.querySelectorAll('.play-btn').forEach(button => {
-                trackList.push(button.dataset.uri);
-                button.addEventListener('click', (e) => {
-                    const uri = e.target.closest('.play-btn').dataset.uri;
-                    playTrack(uri);
-                });
+    // Ready
+    player.addListener('ready', ({ device_id: id }) => {
+        console.log('Ready with Device ID', id);
+        device_id = id;
+        
+        // Initialize track list and add event listeners
+        const buttons = document.querySelectorAll('.play-btn');
+        trackList = Array.from(buttons).map(button => button.dataset.uri);
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const uri = e.currentTarget.dataset.uri;
+                playTrack(uri);
             });
-
-            // Add event listeners to playbar controls
-            document.getElementById('playButton').addEventListener('click', () => player.resume());
-            document.getElementById('pauseButton').addEventListener('click', () => player.pause());
-            document.getElementById('nextButton').addEventListener('click', playNextTrack);
-            document.getElementById('prevButton').addEventListener('click', playPrevTrack);
-
-            // Setup volume control and progress bar seek functionality
-            setupVolumeControl();
-            setupProgressBarSeek();
         });
 
-        // Not Ready
-        player.addListener('not_ready', ({ device_id }) => {
-            console.log('Device ID has gone offline', device_id);
-        });
+        // Setup controls
+        setupPlayerControls();
+    });
 
-        // Connected to the player!
-        player.connect();
-    };
+    // Connect to the player
+    const connected = await player.connect();
+    if (connected) {
+        console.log('Successfully connected to Spotify Player');
+    }
 }
 
+// Add this new function to set up player controls
+function setupPlayerControls() {
+    document.getElementById('playButton').addEventListener('click', () => player.resume());
+    document.getElementById('pauseButton').addEventListener('click', () => player.pause());
+    document.getElementById('nextButton').addEventListener('click', playNextTrack);
+    document.getElementById('prevButton').addEventListener('click', playPrevTrack);
+    
+    setupVolumeControl();
+    setupProgressBarSeek();
+}
 // Function to setup volume control with precise interaction
 function setupVolumeControl() {
     const volumeBar = document.querySelector('.volume-bar');
@@ -567,6 +590,22 @@ function displayError(message) {
     searchResults.classList.add('active');
     searchResults.innerHTML = `<div class="no-results">${message}</div>`;
 }
+
+// Add the new home button click handler here
+document.querySelector('.sidebar-nav ul li a[href=""]').addEventListener('click', function(e) {
+    e.preventDefault(); // Prevent default link behavior
+    
+    // Hide search results
+    const searchResults = document.getElementById('searchResults');
+    searchResults.classList.remove('active');
+    
+    // Show main content
+    const contentContainer = document.querySelector('.content-container');
+    contentContainer.classList.remove('hide');
+    
+    // Clear search input
+    document.getElementById('searchInput').value = '';
+});
 
 // Initializing the application
 document.addEventListener('DOMContentLoaded', function () {

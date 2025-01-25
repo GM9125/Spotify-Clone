@@ -379,6 +379,9 @@ hr {
     color: white;
     padding: 16px;
     border-top: 1px solid #282828;
+    z-index: 1001; 
+    height: 90px; 
+    display: block; 
 }
 
 .playbar-container {
@@ -592,6 +595,8 @@ hr {
 }
 
 .content-container {
+    position: relative;
+    z-index: 1;
     transition: opacity 0.3s ease;
     min-height: 100%;
     background: #181818;
@@ -617,6 +622,7 @@ hr {
 
 .search-results.active {
     display: block;
+    opacity: 1;
 }
 
 .search-categories {
@@ -802,6 +808,8 @@ hr {
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #535353 #121212;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .search-results-content {
