@@ -241,6 +241,7 @@ body {
     border-radius: 6px;
     padding: 15px;
     position: relative;
+    aspect-ratio: auto;
 }
 
 .spotify-playlist .card .item:hover {
@@ -249,9 +250,11 @@ body {
 
 .spotify-playlist .card .item img {
     width: 100%;
+    height: 130px; /* Set a fixed height */
     border-radius: 6px;
     margin-bottom: 10px;
     position: relative;
+    object-fit: cover; 
 }
 
 .spotify-playlist .item h4 {
@@ -286,11 +289,12 @@ body {
     align-items: center;
     justify-content: center;
     right: 8px;
-    bottom: 100px;
+    bottom: calc(50% + 10px); 
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    z-index: 2; 
 }
 
 .spotify-playlist .card .item:hover .play-btn {
@@ -404,6 +408,9 @@ hr {
     height: 56px;
     background-color: #282828;
     margin-right: 16px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
 }
 
 .song-details {
@@ -698,6 +705,7 @@ hr {
     height: 40px;
     border-radius: 4px;
     margin-right: 16px;
+    object-fit: cover;
 }
 
 .result-info {
